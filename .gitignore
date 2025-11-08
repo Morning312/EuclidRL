@@ -1,0 +1,4 @@
+.DS_Store
+/.lake/
+/build/
+data_generation.ipynb

@@ -1,0 +1,10 @@
+name = "llm2lean"
+version = "0.1.0"
+defaultTargets = ["llm2lean"]
+
+[[lean_lib]]
+name = "Llm2lean"
+
+[[lean_exe]]
+name = "llm2lean"
+root = "Main"
