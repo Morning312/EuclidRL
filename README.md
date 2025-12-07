@@ -24,6 +24,7 @@ huggingface-cli download Qwen/Qwen2.5-Math-1.5B --local-dir models/qwen2.5-math-
 ## Data layout
 - SFT data: `data/sft/train.jsonl`, `data/sft/val.jsonl` with records `{"prompt": "...", "completion": "..."}`.
 - RL rollouts: `data/rollouts/train.jsonl` with records `{"prompt": "...", "theorem": "Name.optional"}`.
+- DeepSeek V1.5 reference data: `data/deepseek/*.jsonl` (miniF2F/proofnet + few-shot) copied from the upstream release for SFT/RL experiments.
 
 ### Convert DeepSeek-Prover-V1.5 to SFT format
 ```bash
@@ -48,3 +49,9 @@ python scripts/train_rl.py --config prover/configs/ppo_default.yaml \
 ```
 
 Outputs land in `checkpoints/sft` and `checkpoints/ppo`.
+
+## Download DeepSeek-Prover-V1.5 SFT/RL checkpoints (no base)
+```bash
+python scripts/download_deepseek_models.py --models sft rl --target-dir ./models
+# models/ is git-ignored; add --token if your HF account requires it
+```
