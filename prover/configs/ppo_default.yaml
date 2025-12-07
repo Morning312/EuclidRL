@@ -1,0 +1,22 @@
+model_name: Qwen/Qwen2.5-Math-1.5B
+sft_checkpoint: checkpoints/sft/final
+output_dir: checkpoints/ppo
+rollout_file: data/rollouts/train.jsonl
+max_prompt_length: 512
+max_response_length: 512
+learning_rate: 1.0e-5
+batch_size: 1
+gradient_accumulation_steps: 16
+ppo_epochs: 4
+kl_penalty: 0.1
+cliprange: 0.2
+value_loss_coef: 0.2
+log_steps: 5
+save_steps: 200
+eval_steps: 200
+mixed_precision: bf16
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+reward_model:
+seed: 42

@@ -1,4 +1,18 @@
-.DS_Store
-/.lake/
-/build/
-data_generation.ipynb
+
+# venvs & caches
+.venv/
+__pycache__/
+*.pyc
+*.DS_Store
+
+# model weights / large files
+models/
+!prover/models/
+checkpoints/
+outputs/
+logs/
+
+# secrets
+.env
+.env.*
+mathlib4/

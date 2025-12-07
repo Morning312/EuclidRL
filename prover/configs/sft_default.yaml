@@ -1,0 +1,28 @@
+model_name: Qwen/Qwen2.5-Math-1.5B
+output_dir: checkpoints/sft
+train_file: data/sft/train.jsonl
+val_file: data/sft/val.jsonl
+max_seq_length: 2048
+learning_rate: 2.0e-5
+batch_size: 2
+gradient_accumulation_steps: 8
+num_train_epochs: 3
+warmup_steps: 50
+weight_decay: 0.0
+log_steps: 10
+save_steps: 200
+eval_steps: 200
+gradient_checkpointing: true
+mixed_precision: bf16
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+seed: 42

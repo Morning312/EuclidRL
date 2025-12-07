@@ -1,0 +1,10 @@
+transformers>=4.44
+accelerate
+sentencepiece
+trl
+peft
+huggingface_hub
+# LeanDojo + deps
+lean-dojo==4.20.0
+# optional performance helpers
+bitsandbytes; platform_system=="Linux"
