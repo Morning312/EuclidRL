@@ -8,7 +8,7 @@ import yaml
 @dataclass
 class PPOConfig:
     model_name: str = "Qwen/Qwen2.5-Math-1.5B"
-    sft_checkpoint: Optional[str] = "checkpoints/sft"
+    sft_checkpoint: Optional[str] = "checkpoints/sft/final"
     output_dir: str = "checkpoints/ppo"
     rollout_file: str = "data/rollouts/train.jsonl"
     max_prompt_length: int = 512

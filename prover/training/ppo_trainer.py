@@ -69,6 +69,8 @@ def rollout_reward(
 
 def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[LeanProofEnv] = None) -> None:
     print("Launching PPO with config:", config_path or "defaults")
+    if env is None:
+        print("[WARNING] No LeanProofEnv provided. Using fallback rewards (1.0 if non-empty response).")
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name, use_fast=True, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -101,11 +103,22 @@ def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[Lea
     for batch in trainer.dataloader:
         prompts: list[str] = [row.prompt for row in batch]
         tokenized_prompts = tokenize_prompts(prompts, tokenizer)
-        response_tensors = trainer.generate(
+
+        # Generate full sequences (prompt + response)
+        full_tensors = trainer.generate(
             tokenized_prompts,
             max_new_tokens=cfg.max_response_length,
             pad_token_id=tokenizer.pad_token_id,
         )
+
+        # Extract only the response portion (remove prompt tokens)
+        response_tensors = []
+        for prompt_tensor, full_tensor in zip(tokenized_prompts, full_tensors):
+            prompt_len = len(prompt_tensor)
+            response_only = full_tensor[prompt_len:]
+            response_tensors.append(response_only)
+
+        # Decode only the response portion for reward computation
         responses = tokenizer.batch_decode(response_tensors, skip_special_tokens=True)
 
         rewards = []

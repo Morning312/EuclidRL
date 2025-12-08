@@ -67,12 +67,15 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
         data_collator=collator,
     )
     trainer.add_callback(LogCallback())
-    trainer.save_model(cfg.output_dir + "/init")
+
+    output_path = Path(cfg.output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    trainer.save_model(str(output_path / "init"))
     trainer.train()
     trainer.save_state()
-    trainer.save_model(cfg.output_dir + "/final")
+    trainer.save_model(str(output_path / "final"))
 
-    Path(cfg.output_dir).mkdir(parents=True, exist_ok=True)
-    Path(cfg.output_dir, "sft_config_used.yaml").write_text(
+    (output_path / "sft_config_used.yaml").write_text(
         "\n".join(f"{k}: {v}" for k, v in asdict(cfg).items())
     )
