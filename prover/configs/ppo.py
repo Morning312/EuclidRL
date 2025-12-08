@@ -34,5 +34,5 @@ class PPOConfig:
 def load_ppo_config(path: Optional[str]) -> PPOConfig:
     if path is None:
         return PPOConfig()
-    data = yaml.safe_load(Path(path).read_text())
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     return PPOConfig(**data)

@@ -41,5 +41,5 @@ class SFTConfig:
 def load_sft_config(path: Optional[str]) -> SFTConfig:
     if path is None:
         return SFTConfig()
-    data = yaml.safe_load(Path(path).read_text())
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     return SFTConfig(**data)

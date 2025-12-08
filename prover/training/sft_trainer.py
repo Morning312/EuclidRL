@@ -72,10 +72,13 @@ def run_sft(cfg: SFTConfig, config_path: Optional[str] = None) -> None:
     output_path.mkdir(parents=True, exist_ok=True)
 
     trainer.save_model(str(output_path / "init"))
+    tokenizer.save_pretrained(str(output_path / "init"))
     trainer.train()
     trainer.save_state()
     trainer.save_model(str(output_path / "final"))
+    tokenizer.save_pretrained(str(output_path / "final"))
 
     (output_path / "sft_config_used.yaml").write_text(
-        "\n".join(f"{k}: {v}" for k, v in asdict(cfg).items())
+        "\n".join(f"{k}: {v}" for k, v in asdict(cfg).items()),
+        encoding="utf-8",
     )

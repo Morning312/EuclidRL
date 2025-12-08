@@ -31,6 +31,8 @@ def main() -> None:
 
     print(f"Loading model: {args.model}")
     tok = AutoTokenizer.from_pretrained(args.model, use_fast=True, trust_remote_code=True)
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
     mdl = AutoModelForCausalLM.from_pretrained(
         args.model,
         device_map="auto",

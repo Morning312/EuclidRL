@@ -19,7 +19,7 @@ class SFTExample:
 class JsonlSFTDataset(Dataset):
     def __init__(self, path: str | Path) -> None:
         self.samples: list[SFTExample] = []
-        for line in Path(path).read_text().splitlines():
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
             row = json.loads(line)
             self.samples.append(SFTExample(prompt=row["prompt"], completion=row["completion"]))
 
@@ -46,20 +46,21 @@ class SupervisedDataCollator:
         labels_list = []
 
         for sample in batch:
-            # Tokenize prompt (with special tokens)
+            # Tokenize prompt (with special tokens), reserve at least 1 token for completion
             prompt_ids = self.tokenizer(
                 sample.prompt,
                 add_special_tokens=True,
                 truncation=True,
-                max_length=self.max_length,
+                max_length=self.max_length - 1,
             ).input_ids
 
             # Tokenize completion (without special tokens to avoid duplicate BOS)
+            remaining_length = max(1, self.max_length - len(prompt_ids))
             completion_ids = self.tokenizer(
                 sample.completion,
                 add_special_tokens=False,
                 truncation=True,
-                max_length=self.max_length - len(prompt_ids),
+                max_length=remaining_length,
             ).input_ids
 
             # Concatenate prompt + completion

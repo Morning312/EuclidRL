@@ -28,7 +28,7 @@ def build_prompt(informal_prefix: str, formal_statement: str) -> str:
 
 def convert_one_file(path: Path, use_valid_for_train: bool = False) -> Tuple[list, list]:
     train_rows, val_rows = [], []
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         row = json.loads(line)
         split = (row.get("split") or "train").lower()
         prompt = build_prompt(row.get("informal_prefix", ""), row.get("formal_statement", ""))

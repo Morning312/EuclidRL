@@ -23,7 +23,7 @@ class RolloutExample:
 class RolloutDataset(Dataset):
     def __init__(self, path: str) -> None:
         self.items: list[RolloutExample] = []
-        for line in Path(path).read_text().splitlines():
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
             data = json.loads(line)
             self.items.append(RolloutExample(prompt=data["prompt"], theorem=data.get("theorem")))
 
@@ -34,7 +34,9 @@ class RolloutDataset(Dataset):
         return self.items[idx]
 
 
-def tokenize_prompts(prompts: Iterable[str], tokenizer: PreTrainedTokenizer) -> list[torch.Tensor]:
+def tokenize_prompts(
+    prompts: Iterable[str], tokenizer: PreTrainedTokenizer, max_length: int = 512
+) -> list[torch.Tensor]:
     toks = []
     for p in prompts:
         toks.append(
@@ -43,7 +45,7 @@ def tokenize_prompts(prompts: Iterable[str], tokenizer: PreTrainedTokenizer) -> 
                 return_tensors="pt",
                 padding=False,
                 truncation=True,
-                max_length=tokenizer.model_max_length,
+                max_length=max_length,
             ).input_ids.squeeze(0)
         )
     return toks
@@ -75,9 +77,17 @@ def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[Lea
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    # Determine torch dtype based on config and hardware
+    if cfg.mixed_precision == "bf16" and torch.cuda.is_available():
+        torch_dtype = torch.bfloat16
+    elif cfg.mixed_precision == "fp16" and torch.cuda.is_available():
+        torch_dtype = torch.float16
+    else:
+        torch_dtype = torch.float32
+
     model = AutoModelForCausalLMWithValueHead.from_pretrained(
         cfg.sft_checkpoint or cfg.model_name,
-        torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+        torch_dtype=torch_dtype,
         device_map="auto",
         trust_remote_code=True,
     )
@@ -92,6 +102,7 @@ def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[Lea
         seed=cfg.seed,
         kl_penalty=cfg.kl_penalty,
         cliprange=cfg.cliprange,
+        vf_coef=cfg.value_loss_coef,
     )
     trainer = PPOTrainer(
         config=ppo_cfg,
@@ -100,9 +111,10 @@ def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[Lea
         dataset=RolloutDataset(cfg.rollout_file),
     )
 
+    step = 0
     for batch in trainer.dataloader:
         prompts: list[str] = [row.prompt for row in batch]
-        tokenized_prompts = tokenize_prompts(prompts, tokenizer)
+        tokenized_prompts = tokenize_prompts(prompts, tokenizer, cfg.max_prompt_length)
 
         # Generate full sequences (prompt + response)
         full_tensors = trainer.generate(
@@ -127,11 +139,13 @@ def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[Lea
         reward_tensors = [torch.tensor(r).to(trainer.accelerator.device) for r in rewards]
 
         stats = trainer.step(tokenized_prompts, response_tensors, reward_tensors)
-        if trainer.state.global_step % cfg.log_steps == 0:
-            print(f"[PPO] step={trainer.state.global_step} stats={stats}")
+        step += 1
 
-        if trainer.state.global_step % cfg.save_steps == 0:
-            save_dir = Path(cfg.output_dir) / f"step_{trainer.state.global_step}"
+        if step % cfg.log_steps == 0:
+            print(f"[PPO] step={step} stats={stats}")
+
+        if step % cfg.save_steps == 0:
+            save_dir = Path(cfg.output_dir) / f"step_{step}"
             save_dir.mkdir(parents=True, exist_ok=True)
             trainer.save_pretrained(str(save_dir))
 
@@ -139,5 +153,6 @@ def run_ppo(cfg: PPOConfig, config_path: Optional[str] = None, env: Optional[Lea
     final_dir.mkdir(parents=True, exist_ok=True)
     trainer.save_pretrained(str(final_dir))
     Path(cfg.output_dir, "ppo_config_used.yaml").write_text(
-        "\n".join(f"{k}: {v}" for k, v in asdict(cfg).items())
+        "\n".join(f"{k}: {v}" for k, v in asdict(cfg).items()),
+        encoding="utf-8",
     )
